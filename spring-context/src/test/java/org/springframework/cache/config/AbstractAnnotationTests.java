@@ -16,6 +16,7 @@
 
 package org.springframework.cache.config;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -87,6 +88,21 @@ public abstract class AbstractAnnotationTests {
 
 		assertSame(r1, r2);
 		assertSame(r1, r3);
+	}
+
+	public void testCacheableNull(CacheableService<?> service) throws Exception {
+		Object o1 = new Object();
+		assertNull(cm.getCache("testCache").get(o1));
+
+		Object r1 = service.cacheNull(o1);
+		Object r2 = service.cacheNull(o1);
+		Object r3 = service.cacheNull(o1);
+
+		assertSame(r1, r2);
+		assertSame(r1, r3);
+
+		assertEquals(r3, cm.getCache("testCache").get(o1).get());
+		assertNull("Cached value should be null", r3);
 	}
 
 	public void testEvict(CacheableService<?> service) throws Exception {
@@ -275,6 +291,7 @@ public abstract class AbstractAnnotationTests {
 			service.throwChecked(arg);
 			fail("Excepted exception");
 		} catch (Exception ex) {
+			assertEquals("Wrong exception type", IOException.class, ex.getClass());
 			assertEquals(arg, ex.getMessage());
 		}
 	}
@@ -284,9 +301,8 @@ public abstract class AbstractAnnotationTests {
 			service.throwUnchecked(Long.valueOf(1));
 			fail("Excepted exception");
 		} catch (RuntimeException ex) {
-			assertTrue("Excepted different exception type and got " + ex.getClass(),
-					ex instanceof UnsupportedOperationException);
-			// expected
+			assertEquals("Wrong exception type", UnsupportedOperationException.class, ex.getClass());
+			assertEquals("1", ex.getMessage());
 		}
 	}
 
@@ -455,6 +471,11 @@ public abstract class AbstractAnnotationTests {
 	@Test
 	public void testCacheable() throws Exception {
 		testCacheable(cs);
+	}
+
+	@Test
+	public void testCacheableNull() throws Exception {
+		testCacheableNull(cs);
 	}
 
 	@Test

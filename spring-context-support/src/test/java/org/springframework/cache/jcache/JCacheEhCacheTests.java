@@ -16,112 +16,53 @@
 
 package org.springframework.cache.jcache;
 
-import javax.annotation.Resource;
+import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
 import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.Before;
 
-import org.springframework.cache.annotation.CachingConfigurerSupport;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.config.AbstractAnnotationTests;
-import org.springframework.cache.config.AnnotatedClassCacheableService;
-import org.springframework.cache.config.CacheableService;
-import org.springframework.cache.config.DefaultCacheableService;
-import org.springframework.cache.config.SomeCustomKeyGenerator;
-import org.springframework.cache.interceptor.KeyGenerator;
-import org.springframework.cache.interceptor.SimpleKeyGenerator;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.cache.AbstractCacheTests;
 
 /**
  * @author Stephane Nicoll
  */
-public class JCacheEhCacheTests extends AbstractAnnotationTests {
+public class JCacheEhCacheTests extends AbstractCacheTests<JCacheCache> {
 
-	private CacheManager jCacheManager;
+	private CacheManager cacheManager;
 
+	private Cache<Object, Object> nativeCache;
 
-	@Override
-	protected ConfigurableApplicationContext getApplicationContext() {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.getBeanFactory().registerSingleton("cachingProvider", getCachingProvider());
-		context.register(EnableCachingConfig.class);
-		context.refresh();
-		jCacheManager = context.getBean("jCacheManager", CacheManager.class);
-		return context;
+	private JCacheCache cache;
+
+	@Before
+	public void setUp() {
+		this.cacheManager = getCachingProvider().getCacheManager();
+		this.cacheManager.createCache(CACHE_NAME, new MutableConfiguration<>());
+		this.nativeCache = this.cacheManager.getCache(CACHE_NAME);
+		this.cache = new JCacheCache(this.nativeCache);
 	}
 
 	@After
-	public void shutdown() {
-		if (jCacheManager != null) {
-			jCacheManager.close();
-		}
+	public void shutdownCacheManager() {
+		this.cacheManager.close();
 	}
-
 
 	@Override
-	@Test
-	@Ignore("Multi cache manager support to be added")
-	public void testCustomCacheManager() {
+	protected JCacheCache getCache() {
+		return this.cache;
 	}
 
+	@Override
+	protected Object getNativeCache() {
+		return this.nativeCache;
+	}
 
 	protected CachingProvider getCachingProvider() {
 		return Caching.getCachingProvider();
-	}
-
-
-	@Configuration
-	@EnableCaching
-	static class EnableCachingConfig extends CachingConfigurerSupport {
-
-		@Resource
-		CachingProvider cachingProvider;
-
-		@Override
-		@Bean
-		public org.springframework.cache.CacheManager cacheManager() {
-			return new JCacheCacheManager(jCacheManager());
-		}
-
-		@Bean
-		public CacheManager jCacheManager() {
-			CacheManager cacheManager = this.cachingProvider.getCacheManager();
-			MutableConfiguration<Object, Object> mutableConfiguration = new MutableConfiguration<Object, Object>();
-			mutableConfiguration.setStoreByValue(false);  // otherwise value has to be Serializable
-			cacheManager.createCache("testCache", mutableConfiguration);
-			cacheManager.createCache("primary", mutableConfiguration);
-			cacheManager.createCache("secondary", mutableConfiguration);
-			return cacheManager;
-		}
-
-		@Bean
-		public CacheableService<?> service() {
-			return new DefaultCacheableService();
-		}
-
-		@Bean
-		public CacheableService<?> classService() {
-			return new AnnotatedClassCacheableService();
-		}
-
-		@Override
-		@Bean
-		public KeyGenerator keyGenerator() {
-			return new SimpleKeyGenerator();
-		}
-
-		@Bean
-		public KeyGenerator customKeyGenerator() {
-			return new SomeCustomKeyGenerator();
-		}
 	}
 
 }

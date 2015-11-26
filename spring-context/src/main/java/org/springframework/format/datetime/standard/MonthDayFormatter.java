@@ -14,23 +14,34 @@
  * limitations under the License.
  */
 
-package org.springframework.cache.jcache;
+package org.springframework.format.datetime.standard;
 
-import javax.cache.Caching;
-import javax.cache.spi.CachingProvider;
+import java.text.ParseException;
+import java.time.MonthDay;
+import java.util.Locale;
+
+import org.springframework.format.Formatter;
+import org.springframework.lang.UsesJava8;
 
 /**
- * Just here to be run against EHCache 3, whereas the original JCacheEhCacheTests
- * runs against EhCache 2.x with the EhCache-JCache add-on.
+ * {@link Formatter} implementation for a JSR-310 {@link MonthDay},
+ * following JSR-310's parsing rules for a MonthDay.
  *
  * @author Juergen Hoeller
- * @since 4.2.1
+ * @since 4.2.4
+ * @see MonthDay#parse
  */
-public class JCacheEhCache3Tests extends JCacheEhCacheTests {
+@UsesJava8
+public class MonthDayFormatter implements Formatter<MonthDay> {
 
 	@Override
-	protected CachingProvider getCachingProvider() {
-		return Caching.getCachingProvider("org.ehcache.jsr107.EhcacheCachingProvider");
+	public MonthDay parse(String text, Locale locale) throws ParseException {
+		return MonthDay.parse(text);
+	}
+
+	@Override
+	public String print(MonthDay object, Locale locale) {
+		return object.toString();
 	}
 
 }
